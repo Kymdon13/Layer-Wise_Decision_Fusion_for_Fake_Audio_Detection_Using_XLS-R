@@ -111,3 +111,7 @@ $ python infer.py -task xent -c example/example.yaml -exp infer -ckpt output/ckp
 
 - 训练 `XLSRAdapter`、`XLSRTimeFirst` 等具有层权重的模型时，系统会在输出目录下自动生成 `layer_confidence.csv` 与 `layer_confidence_heatmap.png`，便于分析各层置信度随 epoch 的演化。
 - 详细复现步骤与独立绘图脚本使用方法见 `docs/layer_confidence_visualization.md`。
+
+## ASVspoof2019 Quick Start
+
+- ASVspoof2019 数据准备、训练、推理及常见问题排查流程详见 `docs/asvspoof2019_guide.md`。
