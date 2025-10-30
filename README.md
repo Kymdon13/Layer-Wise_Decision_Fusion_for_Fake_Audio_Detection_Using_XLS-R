@@ -106,3 +106,8 @@ python infer.py
 ```bash
 $ python infer.py -task xent -c example/example.yaml -exp infer -ckpt output/ckpts/[dir] -ckpt_tag best -o output/infer/[dir] -tag [tag_name]  -s test
 ```
+
+## Layer Confidence Visualization
+
+- 训练 `XLSRAdapter`、`XLSRTimeFirst` 等具有层权重的模型时，系统会在输出目录下自动生成 `layer_confidence.csv` 与 `layer_confidence_heatmap.png`，便于分析各层置信度随 epoch 的演化。
+- 详细复现步骤与独立绘图脚本使用方法见 `docs/layer_confidence_visualization.md`。
