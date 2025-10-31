@@ -22,6 +22,7 @@ from torch.utils.data import DataLoader
 import numpy as np
 from torch.profiler import profile, ProfilerActivity
 import contextlib
+from tomato.utils.interpretability import LayerConfidenceTracker
 
 @contextlib.contextmanager
 def pytorch_profiler_context(filename="profiler_results"):
@@ -313,6 +314,11 @@ class FADBaseTask(BaseTask):
     def setup(self, cfg, exp, data, model, criterion, is_infer=False, seed=42, server="ckpts"):
         super().setup(cfg, exp, data, model, criterion, is_infer, seed, server)
 
+        if not self.is_infer and hasattr(self.model, "get_layer_confidence_snapshot"):
+            self.layer_conf_tracker = LayerConfidenceTracker(self.save_dir)
+        else:
+            self.layer_conf_tracker = None
+
         utils.check_key(self.train_args, "start_steps")
         utils.check_key(self.train_args, "max_steps")
         utils.check_key(self.train_args, "max_epoch")
@@ -380,6 +386,13 @@ class FADBaseTask(BaseTask):
             eer, _ = self.train_strategy.compute_eer(labels, scores)
             logger.info(f"Validation EER of {ds}: {eer}")
             
+
+    def _record_layer_confidence(self, epoch_idx: int) -> None:
+        if self.layer_conf_tracker is None:
+            return
+        snapshot = self.model.get_layer_confidence_snapshot()
+        self.layer_conf_tracker.record(epoch_idx, snapshot)
+
 
     def validate(self, num_steps):
         """ Mainly used during training, to select the best model.
@@ -515,6 +528,7 @@ class FADBaseTask(BaseTask):
             self.train_strategy.save_output(self, 
                                             "last", 
                                             {"cur_step": cur_step})
+            self._record_layer_confidence(epoch_idx)
             if should_stop:
                 logger.info("Early stop triggered")
                 break
@@ -539,6 +553,8 @@ class FADBaseTask(BaseTask):
                     break
 
         logger.info("Training finished")
+        if self.layer_conf_tracker is not None:
+            self.layer_conf_tracker.save()
         # delete the lock file
         lock_file.unlink()
         self.writer.close() 
@@ -682,12 +698,15 @@ class FADCLBaseTask(FADBaseTask):
             self.train_strategy.save_output(self, 
                                             "last", 
                                             {"cur_step": cur_step})
+            self._record_layer_confidence(epoch_idx)
             if should_stop:
                 logger.info("Early stop triggered")
                 break
         
             best_err = self.validate_and_save(best_err, cur_step)
         logger.info("Basemodel Training finished")
+        if self.layer_conf_tracker is not None:
+            self.layer_conf_tracker.save()
 
 
     def load_best_basemodel(self):
@@ -734,12 +753,15 @@ class FADCLBaseTask(FADBaseTask):
                                             f"last", {"cur_step": cur_step})
             self.train_strategy.save_output(self, 
                                             f"epoch{epoch_idx}", {"cur_step": cur_step})
+            self._record_layer_confidence(epoch_idx)
             if should_stop:
                 logger.info("Early stop triggered")
                 break
         
             best_err = self.validate_and_save(best_err, cur_step)
         logger.info(f"Training for {cl_train} finished")
+        if self.layer_conf_tracker is not None:
+            self.layer_conf_tracker.save()
         # self.avg_infer(idx+1)
 
 

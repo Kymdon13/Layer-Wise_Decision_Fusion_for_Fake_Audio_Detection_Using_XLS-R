@@ -71,6 +71,9 @@ class ClassificationBase(BaseModel):
     def forward(self, source: dict, **kwargs) -> dict:
         return self.forward_frontend(source, **kwargs)
 
+    def get_layer_confidence_snapshot(self):
+        return None
+
     def state_dict(self):
         state_dict = super().state_dict()
         if self.frontend_model is not None and self.freeze_frontend:

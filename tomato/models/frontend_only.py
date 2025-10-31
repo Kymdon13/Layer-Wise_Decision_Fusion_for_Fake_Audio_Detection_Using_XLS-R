@@ -115,6 +115,9 @@ class XLSRAdapter(XLSRAdapterBase):
             logger.info(f"Loaded gamma from {self.gamma_ckpt}")
         self.to(self.device)
 
+    def get_layer_confidence_snapshot(self):
+        return torch.softmax(self.gamma.detach(), dim=0)
+
     def forward(self, source: dict, **kwards) -> dict:
         hiddens = self.extract_features(source)
         T, N, D = hiddens[0].shape
@@ -154,6 +157,9 @@ class XLSRTimeFirst(XLSRAdapterBase):
         self.gamma = nn.Parameter(torch.randn(self.num_layers))
         self.post_proj = nn.Linear(self.frontend_dim, self.low_dim)
         self.to(self.device)
+
+    def get_layer_confidence_snapshot(self):
+        return torch.softmax(self.gamma.detach(), dim=0)
 
     def forward(self, source: dict, **kwargs):
         hiddens = self.extract_features(source)
